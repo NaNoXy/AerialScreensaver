@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, shell, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { exec, spawn } = require('child_process');
@@ -11,6 +11,28 @@ let tray = null;
 let isQuitting = false;
 let screensaverPaused = false;
 let pauseResumeTimer = null;
+let currentShortcut = null;
+
+function startScreensaverNow() {
+  const scr = getScrPath();
+  if (fs.existsSync(scr)) {
+    spawn(`"${scr}"`, ['/s'], { shell: true, stdio: 'ignore' });
+    return true;
+  }
+  return false;
+}
+
+function registerScreensaverShortcut(shortcut) {
+  if (currentShortcut) {
+    globalShortcut.unregister(currentShortcut);
+    currentShortcut = null;
+  }
+  if (!shortcut) return;
+  try {
+    const ok = globalShortcut.register(shortcut, startScreensaverNow);
+    if (ok) currentShortcut = shortcut;
+  } catch (e) { /* invalid shortcut */ }
+}
 
 function setScreenSaveActive(val) {
   const key = 'HKEY_CURRENT_USER\\Control Panel\\Desktop';
@@ -20,6 +42,7 @@ function setScreenSaveActive(val) {
 function updateTrayMenu() {
   const items = [
     { label: 'Show Aerial Screensaver', click: () => { mainWindow.show(); mainWindow.focus(); } },
+    { label: 'Start Screensaver Now', click: startScreensaverNow },
     { type: 'separator' },
   ];
   if (screensaverPaused) {
@@ -258,6 +281,14 @@ ipcMain.handle('open-screensaver-settings', () => {
 
 ipcMain.handle('get-scr-path', () => getScrPath());
 
+ipcMain.handle('start-screensaver-now', () => startScreensaverNow());
+
+ipcMain.handle('register-shortcut', (event, shortcut) => {
+  registerScreensaverShortcut(shortcut);
+  settings.set('screensaverShortcut', shortcut);
+  return true;
+});
+
 ipcMain.handle('play-mpv-test', () => {
   const downloads = settings.get('downloads', {});
   const paths = Object.values(downloads).map(d => d.path).filter(p => p && fs.existsSync(p));
@@ -287,6 +318,7 @@ app.whenReady().then(() => {
   }
   createMainWindow();
   createTray();
+  registerScreensaverShortcut(settings.get('screensaverShortcut', ''));
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
     else { mainWindow.show(); mainWindow.focus(); }
@@ -294,5 +326,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => { });
+
+app.on('will-quit', () => { globalShortcut.unregisterAll(); });
 
 app.on('before-quit', () => { isQuitting = true; });

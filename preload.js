@@ -37,4 +37,6 @@ contextBridge.exposeInMainWorld('api', {
   getPlayCounts: () => ipcRenderer.invoke('get-play-counts'),
   resetPlayCounts: () => ipcRenderer.invoke('reset-play-counts'),
   playMpvTest: () => ipcRenderer.invoke('play-mpv-test'),
+  startScreensaverNow: () => ipcRenderer.invoke('start-screensaver-now'),
+  registerShortcut: (shortcut) => ipcRenderer.invoke('register-shortcut', shortcut),
 });

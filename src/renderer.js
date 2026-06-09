@@ -305,6 +305,8 @@ function SettingsPanel({ settings, onUpdate }) {
   const [noHdr, setNoHdr] = useState(settings.disableHdr || false);
   const [toneMap, setToneMap] = useState(settings.toneMapping || 'auto');
   const [installMsg, setInstallMsg] = useState('');
+  const [shortcut, setShortcut] = useState(settings.screensaverShortcut || '');
+  const [shortcutMsg, setShortcutMsg] = useState('');
 
   return h('div', { className: 'settings-panel' },
     h('h2', null, 'Windows Screensaver Settings'),
@@ -335,6 +337,46 @@ function SettingsPanel({ settings, onUpdate }) {
         }, 'Open Screen Saver Settings'),
       ),
       installMsg && h('p', { style: { marginTop: '8px', fontSize: '12px', color: installMsg.startsWith('Error') ? '#ef9a9a' : '#a5d6a7' } }, installMsg),
+    ),
+
+    h('div', { className: 'setting-group' },
+      h('label', null, 'Start Now'),
+      h('p', { className: 'setting-desc' }, 'Launch the screensaver immediately without waiting for the idle timeout.'),
+      h('button', {
+        className: 'btn btn-primary',
+        onClick: async () => { await window.api.startScreensaverNow(); }
+      }, '\u25B6 Start Screensaver Now'),
+    ),
+
+    h('div', { className: 'setting-group' },
+      h('label', null, 'Global Keyboard Shortcut'),
+      h('p', { className: 'setting-desc' }, 'Register a system-wide hotkey to start the screensaver from anywhere. Example: Ctrl+Shift+F12'),
+      h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } },
+        h('input', {
+          type: 'text', value: shortcut,
+          placeholder: 'Ctrl+Shift+F12',
+          onChange: e => setShortcut(e.target.value),
+          style: { flex: 1, padding: '6px 8px', background: '#1a1a2e', border: '1px solid #0f3460', color: '#e0e0e0', borderRadius: '4px', fontFamily: 'monospace' },
+        }),
+        h('button', {
+          className: 'btn btn-primary',
+          onClick: async () => {
+            await window.api.registerShortcut(shortcut);
+            setShortcutMsg('Shortcut registered.');
+            setTimeout(() => setShortcutMsg(''), 3000);
+          }
+        }, 'Apply'),
+        h('button', {
+          className: 'btn',
+          onClick: async () => {
+            setShortcut('');
+            await window.api.registerShortcut('');
+            setShortcutMsg('Shortcut cleared.');
+            setTimeout(() => setShortcutMsg(''), 3000);
+          }
+        }, 'Clear'),
+      ),
+      shortcutMsg && h('p', { style: { marginTop: '8px', fontSize: '12px', color: '#a5d6a7' } }, shortcutMsg),
     ),
 
     h('div', { className: 'setting-group' },

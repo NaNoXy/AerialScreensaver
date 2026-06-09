@@ -14,6 +14,7 @@ const store = new Store({
     toneMapping: 'auto',
     windowBounds: { width: 1100, height: 750 },
     playCounts: {},
+    screensaverShortcut: '',
   },
 });
 
