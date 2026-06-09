@@ -15,11 +15,17 @@ let currentShortcut = null;
 
 function startScreensaverNow() {
   const scr = getScrPath();
-  if (fs.existsSync(scr)) {
-    spawn(`"${scr}"`, ['/s'], { shell: true, stdio: 'ignore' });
-    return true;
-  }
-  return false;
+  if (!fs.existsSync(scr)) return false;
+  const child = spawn(`"${scr}"`, ['/s'], { shell: true, stdio: 'ignore' });
+  child.on('exit', () => {
+    exec('reg query "HKCU\\Control Panel\\Desktop" /v ScreenSaveSecure', (err, stdout) => {
+      if (!err) {
+        const m = stdout.match(/ScreenSaveSecure\s+REG_\w+\s+(\d+)/);
+        if (m && m[1] === '1') exec('rundll32.exe user32.dll,LockWorkStation');
+      }
+    });
+  });
+  return true;
 }
 
 function registerScreensaverShortcut(shortcut) {
