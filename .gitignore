@@ -1,0 +1,11 @@
+node_modules/
+dist-electron/
+dist-electron-v7/
+UsersW11AppDataLocalTemp/
+.env
+*.log
+.DS_Store
+Thumbs.db
+bin/mpv.exe
+bin/mpv.com
+bin/d3dcompiler_43.dll

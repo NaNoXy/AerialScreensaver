@@ -1,0 +1,70 @@
+{
+  "name": "aerial-screensaver",
+  "version": "1.0.0",
+  "description": "Apple TV Aerials Screensaver for Windows 11",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "pack": "electron-builder --win --dir",
+    "build:checker": "node build-checker.js",
+    "dist": "npm run build:checker && electron-builder --win --config.win.target=portable",
+    "dist:nsis": "npm run build:checker && electron-builder --win --config.win.target=nsis"
+  },
+  "keywords": [
+    "screensaver",
+    "apple-tv",
+    "aerials"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "electron-store": "^11.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^42.2.0",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.aerial.screensaver",
+    "productName": "Aerial Screensaver",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "src/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../AppleTV Aerials Screen Saver Links - updated October 2025 (tvOS 26 + macOS 26).xlsx",
+        "to": "Aerial Catalog.xlsx"
+      },
+      {
+        "from": "build/icon.ico",
+        "to": "icon.ico"
+      },
+      {
+        "from": "bin",
+        "to": "bin",
+        "filter": ["mpv.exe", "mpv.com", "d3dcompiler_43.dll", "mpv/**", "FullscreenChecker.exe", "Aerial Screensaver.scr"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.ico"
+    }
+  }
+}
