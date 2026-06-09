@@ -80,6 +80,7 @@ If a video's chosen quality URL is dead, the downloader automatically tries lowe
 
 ## Acknowledgments
 
+- [OrangeJedi/Aerial](https://github.com/OrangeJedi/Aerial) — the original inspiration for bringing Apple's Aerials to other platforms
 - [mpv](https://mpv.io/) — the best video player, handles HEVC/HDR effortlessly
 - Apple — for producing the stunning Aerial screen saver footage
 - [aerials.xlsx](https://github.com/ThatsAMonkey-07/Apple-TV-Aerials-Updated) — community-maintained spreadsheet of video URLs
