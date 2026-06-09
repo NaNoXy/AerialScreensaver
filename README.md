@@ -78,6 +78,10 @@ If a video's chosen quality URL is dead, the downloader automatically tries lowe
 - `GetLastInputInfo()` is polled every 500ms — the moment user input is detected, mpv is killed and the screensaver exits
 - The Electron tray app is only for configuration, downloads, and install/uninstall — it does not manage the screensaver lifecycle
 
+## AI Disclosure
+
+This project was built with assistance from [OpenCode](https://opencode.ai), an AI-powered coding agent. Every line of code was reviewed and tested, but the initial structure, bug fixes, and implementation details were generated collaboratively by AI under human direction. Transparency matters — open-source doesn't mean human-only.
+
 ## Acknowledgments
 
 - [OrangeJedi/Aerial](https://github.com/OrangeJedi/Aerial) — the original inspiration for bringing Apple's Aerials to other platforms
