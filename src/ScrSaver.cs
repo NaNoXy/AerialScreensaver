@@ -96,7 +96,8 @@ class AerialScreensaverScr
     {
         List<string> a = new List<string>();
         a.Add("--fullscreen");
-        a.Add("--stop-screensaver=no --cursor-autohide=0");
+            a.Add("--stop-screensaver=no");
+            a.Add("--cursor-autohide=0");
         a.Add("--no-osc --no-osd-bar --really-quiet --hwdec=auto");
 
         object temp;
