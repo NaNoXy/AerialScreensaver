@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('api', {
   uninstallScreensaver: () => ipcRenderer.invoke('uninstall-screensaver'),
   openScreensaverSettings: () => ipcRenderer.invoke('open-screensaver-settings'),
   getScrPath: () => ipcRenderer.invoke('get-scr-path'),
+  scanExistingVideos: () => ipcRenderer.invoke('scan-existing-videos'),
   getPlayCounts: () => ipcRenderer.invoke('get-play-counts'),
   resetPlayCounts: () => ipcRenderer.invoke('reset-play-counts'),
   playMpvTest: () => ipcRenderer.invoke('play-mpv-test'),

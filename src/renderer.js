@@ -37,6 +37,8 @@ function App() {
         setPreviewQuality(s.previewQuality || '1080p H264');
         const dls = await window.api.getDownloads();
         setDownloads(dls || {});
+        const scanned = await window.api.scanExistingVideos();
+        setDownloads(scanned || {});
       } catch (e) {
         console.error('Failed to load:', e);
         setLoadError('Failed to load catalog: ' + e.message);
@@ -81,7 +83,10 @@ function App() {
         }
       }),
       activeTab === 'downloads' && h(DownloadPanel, {
-        downloads, onRefresh: async () => setDownloads(await window.api.getDownloads() || {})
+        downloads, onRefresh: async () => {
+          const scanned = await window.api.scanExistingVideos();
+          setDownloads(scanned || {});
+        }
       }),
     )
   );

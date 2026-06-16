@@ -212,6 +212,32 @@ ipcMain.handle('check-url', async (event, url) => {
   } catch (e) { return { dead: true, status: 0 }; }
 });
 
+ipcMain.handle('scan-existing-videos', async () => {
+  const videoDir = path.join(app.getPath('userData'), 'videos');
+  if (!fs.existsSync(videoDir)) return {};
+  const cat = await catalog.parse(getCatalogPath());
+  const downloads = settings.get('downloads', {});
+  const qualities = ['4K HDR', '4K 240fps', '4K', '1080p HDR', '1080p H264', '1080p'];
+  const existingFiles = new Set(fs.readdirSync(videoDir));
+  let changed = false;
+  for (const region of cat.regions) {
+    for (const video of region.videos) {
+      for (const q of qualities) {
+        const filename = `${video.id.replace('::', '_')}_${q.replace(/\s+/g, '_')}.mov`;
+        if (existingFiles.has(filename)) {
+          if (!downloads[video.id]) {
+            downloads[video.id] = { path: path.join(videoDir, filename), quality: q, requestQuality: q, name: video.id, completedAt: Date.now() };
+            changed = true;
+          }
+          break;
+        }
+      }
+    }
+  }
+  if (changed) settings.set('downloads', downloads);
+  return downloads;
+});
+
 ipcMain.handle('get-storage-info', () => {
   const videoDir = path.join(app.getPath('userData'), 'videos');
   let totalSize = 0; let count = 0;
