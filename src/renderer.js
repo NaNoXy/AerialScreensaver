@@ -444,6 +444,7 @@ function DownloadPanel({ downloads, onRefresh }) {
 
   useEffect(() => { window.api.getStorageInfo().then(setStorageInfo); }, [downloads]);
   useEffect(() => { window.api.getPlayCounts().then(setPlayCounts); }, [downloads]);
+  useEffect(() => { onRefresh(); }, []);
 
   useEffect(() => {
     const cleanups = [
@@ -472,6 +473,10 @@ function DownloadPanel({ downloads, onRefresh }) {
       h('h2', null, 'Downloads'),
       h('div', { className: 'storage-info' },
         h('span', null, `Stored: ${formatBytes(storageInfo.totalSize)} (${storageInfo.count} videos)`),
+        h('button', {
+          className: 'btn btn-sm',
+          onClick: async () => { await onRefresh(); }
+        }, '\u21BB Rescan'),
         storageInfo.count > 0 && h('button', {
           className: 'btn btn-sm',
           onClick: async () => { await window.api.openDownloadsFolder(); }
