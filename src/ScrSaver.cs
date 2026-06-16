@@ -96,7 +96,6 @@ class AerialScreensaverScr
     {
         List<string> a = new List<string>();
         a.Add("--fullscreen");
-        a.Add("--loop-file=inf");
         a.Add("--stop-screensaver=no --cursor-autohide=0");
         a.Add("--no-osc --no-osd-bar --really-quiet --hwdec=auto");
 
@@ -124,6 +123,26 @@ class AerialScreensaverScr
         return string.Join(" ", a);
     }
 
+    static string PickLeastPlayed(HashSet<string> videoIds, Dictionary<string, int> playCounts)
+    {
+        int minCount = int.MaxValue;
+        foreach (string id in videoIds)
+        {
+            int c;
+            playCounts.TryGetValue(id, out c);
+            if (c < minCount) minCount = c;
+        }
+        List<string> candidates = new List<string>();
+        foreach (string id in videoIds)
+        {
+            int c;
+            playCounts.TryGetValue(id, out c);
+            if (c == minCount) candidates.Add(id);
+        }
+        if (candidates.Count == 0) return null;
+        return candidates[new Random().Next(candidates.Count)];
+    }
+
     static void StartScreensaver()
     {
         string configPath = Path.Combine(
@@ -133,7 +152,7 @@ class AerialScreensaverScr
         Dictionary<string, object> config = ReadConfig(configPath);
         if (config == null) return;
 
-        List<string> videoPaths = new List<string>();
+        Dictionary<string, string> videoMap = new Dictionary<string, string>();
         Dictionary<string, int> playCounts = new Dictionary<string, int>();
 
         object temp;
@@ -149,13 +168,13 @@ class AerialScreensaverScr
                     {
                         string ps = temp as string;
                         if (!string.IsNullOrEmpty(ps) && File.Exists(ps))
-                            videoPaths.Add(kvp.Key);
+                            videoMap[kvp.Key] = ps;
                     }
                 }
             }
         }
 
-        if (videoPaths.Count == 0) return;
+        if (videoMap.Count == 0) return;
 
         if (config.TryGetValue("playCounts", out temp))
         {
@@ -170,39 +189,8 @@ class AerialScreensaverScr
             }
         }
 
-        int minCount = int.MaxValue;
-        foreach (string id in videoPaths)
-        {
-            int c;
-            playCounts.TryGetValue(id, out c);
-            if (c < minCount) minCount = c;
-        }
-        List<string> candidates = new List<string>();
-        foreach (string id in videoPaths)
-        {
-            int c;
-            playCounts.TryGetValue(id, out c);
-            if (c == minCount) candidates.Add(id);
-        }
-
-        Random rng = new Random();
-        string chosenId = candidates[rng.Next(candidates.Count)];
-        string chosenPath = null;
-        if (config.TryGetValue("downloads", out temp))
-        {
-            Dictionary<string, object> dl = temp as Dictionary<string, object>;
-            if (dl != null && dl.ContainsKey(chosenId))
-            {
-                Dictionary<string, object> e = dl[chosenId] as Dictionary<string, object>;
-                if (e != null && e.TryGetValue("path", out temp))
-                    chosenPath = temp as string;
-            }
-        }
-
-        if (string.IsNullOrEmpty(chosenPath) || !File.Exists(chosenPath)) return;
-
-        string mpvPath = FindMpv();
-        if (mpvPath == null) return;
+        string mpvExe = FindMpv();
+        if (mpvExe == null) return;
 
         Rectangle r = new Rectangle();
         foreach (Screen s in Screen.AllScreens) r = Rectangle.Union(r, s.Bounds);
@@ -233,46 +221,78 @@ class AerialScreensaverScr
         GetLastInputInfo(ref lii);
         uint startTick = lii.dwTime;
 
-        Process mpv = new Process();
-        mpv.StartInfo.FileName = mpvPath;
-        mpv.StartInfo.Arguments = BuildMpvArgs(chosenPath, config);
-        mpv.StartInfo.UseShellExecute = false;
-        mpv.StartInfo.CreateNoWindow = true;
-        mpv.Start();
-        if (job != IntPtr.Zero) AssignProcessToJobObject(job, mpv.Handle);
+        Process mpv = null;
+        string currentId = null;
+        bool exiting = false;
+        bool needNext = true;
+
+        HashSet<string> videoIds = new HashSet<string>(videoMap.Keys);
 
         Timer inputTimer = new Timer();
         inputTimer.Interval = 500;
         inputTimer.Tick += (s, e) =>
         {
+            if (exiting) return;
+
             LASTINPUTINFO li = new LASTINPUTINFO();
             li.cbSize = (uint)Marshal.SizeOf(li);
             GetLastInputInfo(ref li);
+
             if (li.dwTime != startTick)
             {
+                exiting = true;
                 inputTimer.Stop();
-                if (!mpv.HasExited) try { mpv.Kill(); } catch { }
-                int cur;
-                playCounts.TryGetValue(chosenId, out cur);
-                playCounts[chosenId] = cur + 1;
+                if (currentId != null)
+                {
+                    int cur;
+                    playCounts.TryGetValue(currentId, out cur);
+                    playCounts[currentId] = cur + 1;
+                }
                 config["playCounts"] = playCounts;
                 WriteConfig(configPath, config);
+                if (mpv != null && !mpv.HasExited) try { mpv.Kill(); } catch { }
                 Application.Exit();
+                return;
+            }
+
+            if (needNext)
+            {
+                currentId = PickLeastPlayed(videoIds, playCounts);
+                if (currentId == null || !videoMap.ContainsKey(currentId))
+                {
+                    exiting = true;
+                    Application.Exit();
+                    return;
+                }
+                string path = videoMap[currentId];
+                mpv = new Process();
+                mpv.StartInfo.FileName = mpvExe;
+                mpv.StartInfo.Arguments = BuildMpvArgs(path, config);
+                mpv.StartInfo.UseShellExecute = false;
+                mpv.StartInfo.CreateNoWindow = true;
+                mpv.Start();
+                if (job != IntPtr.Zero) AssignProcessToJobObject(job, mpv.Handle);
+                needNext = false;
+            }
+            else if (mpv != null && mpv.HasExited)
+            {
+                int cur;
+                playCounts.TryGetValue(currentId, out cur);
+                playCounts[currentId] = cur + 1;
+                config["playCounts"] = playCounts;
+                WriteConfig(configPath, config);
+                needNext = true;
             }
         };
         inputTimer.Start();
 
-        mpv.EnableRaisingEvents = true;
-        mpv.Exited += (s, e) =>
-        {
-            int cur;
-            playCounts.TryGetValue(chosenId, out cur);
-            playCounts[chosenId] = cur + 1;
-            config["playCounts"] = playCounts;
-            WriteConfig(configPath, config);
-            Application.Exit();
+        f.FormClosing += (s, e) => {
+            if (!exiting)
+            {
+                exiting = true;
+                if (mpv != null && !mpv.HasExited) try { mpv.Kill(); } catch { }
+            }
         };
-        f.FormClosing += (s, e) => { if (!mpv.HasExited) try { mpv.Kill(); } catch { } };
 
         Application.Run();
         inputTimer.Stop();
