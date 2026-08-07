@@ -16,10 +16,7 @@ let currentShortcut = null;
 function startScreensaverNow() {
   const scr = getScrPath();
   if (!fs.existsSync(scr)) return false;
-  const child = spawn(`"${scr}"`, ['/s'], { shell: true, stdio: 'ignore' });
-  child.on('exit', () => {
-    exec('rundll32.exe user32.dll,LockWorkStation');
-  });
+  spawn(`"${scr}"`, ['/s', '/lock'], { shell: true, stdio: 'ignore' });
   return true;
 }
 

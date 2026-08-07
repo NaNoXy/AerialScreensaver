@@ -15,6 +15,7 @@ class AerialScreensaverScr
     [DllImport("kernel32.dll")] static extern bool AssignProcessToJobObject(IntPtr h, IntPtr p);
     [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
     [DllImport("user32.dll")] static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
+    [DllImport("user32.dll")] static extern bool LockWorkStation();
 
     struct LASTINPUTINFO { public uint cbSize; public uint dwTime; }
 
@@ -49,11 +50,14 @@ class AerialScreensaverScr
     [STAThread]
     static void Main(string[] args)
     {
-        if (args.Length > 0)
+        bool start = false, lockOnExit = false;
+        foreach (string arg in args)
         {
-            string a = args[0].ToLowerInvariant();
-            if (a == "/s" || a == "-s") { StartScreensaver(); return; }
+            string a = arg.ToLowerInvariant();
+            if (a == "/s" || a == "-s") start = true;
+            if (a == "/lock" || a == "-lock") lockOnExit = true;
         }
+        if (start) StartScreensaver(lockOnExit);
     }
 
     static Dictionary<string, object> ReadConfig(string path)
@@ -144,7 +148,7 @@ class AerialScreensaverScr
         return candidates[new Random().Next(candidates.Count)];
     }
 
-    static void StartScreensaver()
+    static void StartScreensaver(bool lockOnExit)
     {
         string configPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -230,7 +234,7 @@ class AerialScreensaverScr
         HashSet<string> videoIds = new HashSet<string>(videoMap.Keys);
 
         Timer inputTimer = new Timer();
-        inputTimer.Interval = 500;
+        inputTimer.Interval = 100;
         inputTimer.Tick += (s, e) =>
         {
             if (exiting) return;
@@ -252,6 +256,7 @@ class AerialScreensaverScr
                 config["playCounts"] = playCounts;
                 WriteConfig(configPath, config);
                 if (mpv != null && !mpv.HasExited) try { mpv.Kill(); } catch { }
+                if (lockOnExit) try { LockWorkStation(); } catch { }
                 Application.Exit();
                 return;
             }

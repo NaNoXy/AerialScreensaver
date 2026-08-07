@@ -1,6 +1,6 @@
 {
   "name": "aerial-screensaver",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "description": "Apple TV Aerials Screensaver for Windows 11",
   "main": "main.js",
   "scripts": {
